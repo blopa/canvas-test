@@ -175,12 +175,16 @@ function App() {
                 onClick={handleClick}
                 onMouseMove={handleMouseMove}
             />
-            <button onClick={() => console.log({
-                currentMousePosition,
-                linePoints,
-                positions,
-                polylines,
-            })} >clicky</button>
+            <button
+                onClick={() => console.log({
+                    currentMousePosition,
+                    linePoints,
+                    positions,
+                    polylines,
+                })}
+            >
+                clicky
+            </button>
         </div>
     );
 }
