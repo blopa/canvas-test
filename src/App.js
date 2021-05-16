@@ -5,6 +5,7 @@ import useEventListener from '@use-it/event-listener';
 // Styles
 import './App.css';
 
+// by this person: https://stackoverflow.com/a/1501725/4307769
 function sqr(x) {
     return x * x;
 }
@@ -13,7 +14,7 @@ function dist2(v, w) {
     return sqr(v.x - w.x) + sqr(v.y - w.y);
 }
 
-function distToSegmentSquared(p, v, w) {
+function distToSegment(p, v, w) {
     const l2 = dist2(v, w);
     if (l2 == 0) {
         return dist2(p, v);
@@ -22,11 +23,13 @@ function distToSegmentSquared(p, v, w) {
     let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
     t = Math.max(0, Math.min(1, t));
 
-    return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
-}
-
-function distToSegment(p, v, w) {
-    return Math.sqrt(distToSegmentSquared(p, v, w));
+    const x = v.x + t * (w.x - v.x);
+    const y =v.y + t * (w.y - v.y);
+    return {
+        distance: Math.sqrt(dist2(p, { x, y })),
+        x,
+        y,
+    };
 }
 
 function App() {
@@ -35,6 +38,7 @@ function App() {
     const [positions, setPositions] = useState([]);
     const [polylines, setPolylines] = useState([]);
     const ref = useRef(null);
+    const snapDistance = 30;
 
     useEventListener('keydown', (event) => {
         if (event.keyCode === 27) {
@@ -68,7 +72,7 @@ function App() {
         positions.forEach(drawLines);
 
         const lastPosition = [...linePoints].pop() || {};
-        if (lastPosition.x && lastPosition.y && currentMousePosition?.x && currentMousePosition?.y) {
+        if (lastPosition.x && lastPosition.y && currentMousePosition.x && currentMousePosition.y) {
             context.beginPath();
             context.moveTo(lastPosition.x, lastPosition.y);
             context.lineTo(currentMousePosition.x, currentMousePosition.y);
@@ -99,17 +103,35 @@ function App() {
             y: event.clientY,
         };
 
-        // if (positions.length || polylines.length) {
-        //     [
-        //         ...polylines.flat(),
-        //         ...positions,
-        //     ].forEach((pos) => {
-        //         const distance = distToSegment(position, pos[0], pos[1]);
-        //         debugger;
-        //     });
-        // }
+        const pastPositions = [
+            ...polylines.flat(),
+            ...positions.slice(0, -1)
+        ];
 
-        setCurrentMousePosition(position);
+        let shortDistances =[];
+        if (pastPositions.length) {
+            const distances = [];
+            pastPositions.forEach((pos) => {
+                distances.push({
+                    line: pos,
+                    ...distToSegment(position, pos[0], pos[1]),
+                });
+            });
+
+            shortDistances = distances.filter((distance) => {
+                return distance.distance < snapDistance;
+            });
+        }
+
+        const newSnapPosition = shortDistances.sort((a, b) => b.distance - a.distance);
+        if (newSnapPosition.length) {
+            setCurrentMousePosition({
+                x: newSnapPosition[0].x,
+                y: newSnapPosition[0].y,
+            });
+        } else {
+            setCurrentMousePosition(position);
+        }
     }, [polylines, positions]);
 
     return (
