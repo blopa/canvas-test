@@ -16,8 +16,12 @@ function dist2(v, w) {
 
 function distToSegment(p, v, w) {
     const l2 = dist2(v, w);
-    if (l2 == 0) {
-        return dist2(p, v);
+    if (l2 === 0) {
+        return {
+            distance: dist2(p, v),
+            x: v.x,
+            y: v.y,
+        };
     }
 
     let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
