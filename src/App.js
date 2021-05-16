@@ -33,13 +33,27 @@ function distToSegment(p, v, w) {
 }
 
 function App() {
+    // set mouse position - could use a debounce to improve performance
     const [currentMousePosition, setCurrentMousePosition] = useState({});
+
+    // set the last formed line points
     const [linePoints, setLinePoints] = useState([]);
+
+    // set all "unfinished" positions (no esc pressed)
     const [positions, setPositions] = useState([]);
+
+    // set all the "saved" positions
     const [polylines, setPolylines] = useState([]);
+
+    // reference for the canvas
     const ref = useRef(null);
+
+    // distance to trigger the snap
     const snapDistance = 30;
 
+    // listener for the esc key
+    // since we already have all the state in a hook variable
+    // we can easily implement control + z feature
     useEventListener('keydown', (event) => {
         if (event.keyCode === 27) {
             setPolylines([
@@ -51,6 +65,8 @@ function App() {
         }
     });
 
+    // let's update the canvas on every animation frame update
+    // we need this to re-draw the line preview that follows the mouse point
     useAnimationFrame(() => {
         if (!ref.current) {
             return;
@@ -58,7 +74,11 @@ function App() {
 
         const canvas = ref.current;
         const context = canvas.getContext('2d');
+
+        // clear the canvas
         context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // helper function to draw the lines on the canvas
         const drawLines = (loopPositions) => {
             context.beginPath();
             context.moveTo(loopPositions[0].x, loopPositions[0].y);
@@ -66,11 +86,15 @@ function App() {
             context.stroke();
         }
 
+        // draw lines for all saved positions
         polylines.forEach((polyline) => {
             polyline.forEach(drawLines);
         });
+
+        // draw lines for all un-saved positions
         positions.forEach(drawLines);
 
+        // draw line for the preview
         const lastPosition = [...linePoints].pop() || {};
         if (lastPosition.x && lastPosition.y && currentMousePosition.x && currentMousePosition.y) {
             context.beginPath();
@@ -109,6 +133,9 @@ function App() {
         ];
 
         let shortDistances =[];
+        // if we have some positions set, then let's try to find
+        // the nearest position within the "snapDistance" range
+        // this can be heavily improved I fear
         if (pastPositions.length) {
             const distances = [];
             pastPositions.forEach((pos) => {
@@ -123,6 +150,7 @@ function App() {
             });
         }
 
+        // get the closest one
         const newSnapPosition = shortDistances.sort((a, b) => b.distance - a.distance);
         if (newSnapPosition.length) {
             setCurrentMousePosition({
@@ -130,6 +158,7 @@ function App() {
                 y: newSnapPosition[0].y,
             });
         } else {
+            // if we don't have it, just set to the current mouse position
             setCurrentMousePosition(position);
         }
     }, [polylines, positions]);
@@ -146,7 +175,12 @@ function App() {
                 onClick={handleClick}
                 onMouseMove={handleMouseMove}
             />
-            <button onClick={() => console.log({ polylines, positions })} >clicky</button>
+            <button onClick={() => console.log({
+                currentMousePosition,
+                linePoints,
+                positions,
+                polylines,
+            })} >clicky</button>
         </div>
     );
 }
