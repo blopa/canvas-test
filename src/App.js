@@ -31,18 +31,19 @@ function distToSegment(p, v, w) {
 
 function App() {
     const [currentMousePosition, setCurrentMousePosition] = useState({});
-    const [linePoint, setLinePoint] = useState({});
+    const [linePoints, setLinePoints] = useState([]);
     const [positions, setPositions] = useState([]);
     const [polylines, setPolylines] = useState([]);
     const ref = useRef(null);
 
     useEventListener('keydown', (event) => {
-        if (event.keyCode === 27){
+        if (event.keyCode === 27) {
             setPolylines([
                 ...polylines,
                 positions,
             ]);
             setPositions([]);
+            setLinePoints([]);
         }
     });
 
@@ -66,28 +67,31 @@ function App() {
         });
         positions.forEach(drawLines);
 
-        const lastPosition = (linePoint.x && linePoint.y) ? linePoint : (positions[positions.length - 1]?.[1] || {});
+        const lastPosition = [...linePoints].pop() || {};
         if (lastPosition.x && lastPosition.y && currentMousePosition?.x && currentMousePosition?.y) {
             context.beginPath();
             context.moveTo(lastPosition.x, lastPosition.y);
             context.lineTo(currentMousePosition.x, currentMousePosition.y);
             context.stroke();
         }
-    }, [positions, ref.current, currentMousePosition, linePoint]);
+    }, [positions, ref.current, currentMousePosition, linePoints]);
 
     const handleClick = useCallback(() => {
-        const lastPosition = (linePoint.x && linePoint.y) ? linePoint : (positions[positions.length - 1]?.[1] || {});
-        setPositions([
-            ...positions,
-            [lastPosition, currentMousePosition]
-        ]);
+        const points = [
+            ...linePoints,
+            currentMousePosition
+        ];
 
-        if (linePoint.x && linePoint.y) {
-            setLinePoint({});
+        if (points.length === 2) {
+            setPositions([
+                ...positions,
+                points
+            ])
+            setLinePoints([currentMousePosition]);
         } else {
-            setLinePoint(currentMousePosition);
+            setLinePoints(points);
         }
-    }, [positions, currentMousePosition, linePoint]);
+    }, [positions, currentMousePosition, linePoints]);
 
     const handleMouseMove = useCallback((event) => {
         const position = {
@@ -96,8 +100,12 @@ function App() {
         };
 
         // if (positions.length || polylines.length) {
-        //     [].forEach(() => {
-        //         // TODO
+        //     [
+        //         ...polylines.flat(),
+        //         ...positions,
+        //     ].forEach((pos) => {
+        //         const distance = distToSegment(position, pos[0], pos[1]);
+        //         debugger;
         //     });
         // }
 
